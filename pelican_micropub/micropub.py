@@ -27,7 +27,11 @@ class MicropubReader(BaseReader):
 
     def read(self, filename):
         post = json.loads(read_whole_file(filename))
-        return micropub2pelican(post, self.settings)
+        html, metadata = micropub2pelican(post, self.settings)
+        parsed = {}
+        for key, value in metadata.items():
+            parsed[key] = self.process_metadata(key, value)
+        return html, parsed
 
 
 def micropub2pelican(post, settings={}):
@@ -45,14 +49,15 @@ def micropub2pelican(post, settings={}):
 
 def get_metadata(settings, entry, post, post_type):
     category = get_category(settings, post_type)
-    slug = get_slug(post['properties'])
-    print('ENTRY: ' + str(entry))
+    slug = get_slug(post)
+    published = get_single_prop(post, 'published')
+    updated = get_single_prop(post, 'updated') or published
     metadata = {
         'category': category,
         'slug': slug,
         'tags': post['properties'].get('category', []),
-        'date': entry.get('published'),
-        'modified': entry.get('updated'),
+        'date': published,
+        'modified': updated,
         'title': entry.get('name') or entry.get('content-plain'),
         'summary': entry.get('summary'),
         'in-reply-to': get_url_prop(entry, 'in-reply-to'),
@@ -68,22 +73,27 @@ def get_metadata(settings, entry, post, post_type):
     return metadata
 
 
+def get_single_prop(entry, prop):
+    p = entry['properties']
+    if prop in p and p[prop]:
+        return p[prop][0]
+    else:
+        return None
+
+
 def get_url_prop(entry, prop):
     return [x['url'] for x in entry.get(prop, [])]
 
 
-def get_slug(props):
+def get_slug(entry):
+    props = entry['properties']
     return props.get('mp-slug', [get_default_slug(props)])[0]
 
 
 def get_default_slug(props):
-    date = get_published_date(props)
-    return '{published:%H}{published:%M}{published:%S}'.format(published=date)
-
-
-def get_published_date(props):
-    return datetime.datetime.strptime(props['published'][0],
+    date = datetime.datetime.strptime(props['published'][0],
                                       '%Y-%m-%dT%H:%M:%S.%f')
+    return '{published:%H}{published:%M}{published:%S}'.format(published=date)
 
 
 def get_category(settings, post_type):

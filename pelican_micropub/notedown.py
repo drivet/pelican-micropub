@@ -47,10 +47,11 @@ def convert2html(text, url_linking=False,
     # we'll say, somewhat arbitrarily, that tabs are replaced by four spaces
     text = text.replace('\t', '    ')
 
-    # replace more than two spaces with escape codes
-    text = multispace_re.sub('&nbsp;', text)
-
-    # replace newlines with HTML breaks
+    # replace newlines and carriage returns with HTML breaks
+    text = text.replace('\r\n', '<br/>')
     text = text.replace('\n', '<br/>')
 
+    # replace more than two spaces with escape codes
+    text = multispace_re.sub('&nbsp;', text)
+    
     return text

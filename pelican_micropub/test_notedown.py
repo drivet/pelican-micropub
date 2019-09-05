@@ -71,8 +71,10 @@ def test_one_space_does_not_get_converted():
     assert convert2html('hello there') == 'hello there'
 
 
-def test_newline_converted_to_br():
+def test_newline_and_cr_converted_to_br():
     assert convert2html('hello\nthere') == 'hello<br/>there'
+    assert convert2html('hello\r\nthere') == 'hello<br/>there'
+    assert convert2html('hello\r\n\nthere') == 'hello<br/><br/>there'
 
 
 def test_links_not_autolinked_if_url_linking_off():

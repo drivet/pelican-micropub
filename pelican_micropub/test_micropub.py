@@ -1,4 +1,3 @@
-import datetime
 from pelican_micropub.micropub import html_content, \
     text_content, micropub2pelican
 
@@ -185,7 +184,7 @@ def test_should_set_date():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['date'] == datetime.datetime(2019, 8, 29, 2, 3, 5)
+    assert metadata['date'] == '2019-08-29T02:03:05.429827'
 
 
 def test_should_set_updated():
@@ -198,7 +197,7 @@ def test_should_set_updated():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['modified'] == datetime.datetime(2019, 8, 30, 3, 5, 6)
+    assert metadata['modified'] == '2019-08-30T03:05:06.429827'
 
 
 def test_should_set_in_reply_to():
