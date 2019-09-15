@@ -13,12 +13,12 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = 'pelican-micropub'
-DESCRIPTION = 'A pelican plugin to read micropun entries in json form'
+DESCRIPTION = 'A pelican plugin to read micropub entries in json form'
 URL = 'https://github.com/drivet/pelian-micropub'
 EMAIL = 'desmond.rivet@gmail.com'
 AUTHOR = 'Desmond Rivet'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '1.0.0'
+VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
