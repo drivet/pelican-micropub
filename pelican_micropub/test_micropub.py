@@ -1,7 +1,12 @@
 from pelican_micropub.micropub import html_content, \
-    text_content, micropub2pelican
+    text_content, micropub2pelican, init_micropub_metadata
 
 
+class Generator(object):
+    def __init__(self, settings={}):
+        self.settings = settings
+
+        
 def test_fetches_html():
     mp_entry = {
         "type": ["h-entry"],
@@ -301,3 +306,26 @@ def test_should_set_title_from_content():
     }
     html, metadata = micropub2pelican(post)
     assert metadata['title'] == 'test\npost'
+
+
+def test_should_init_content_header():
+    metadata = {}
+    settings = {
+        'WEBMENTIONS_CONTENT_HEADERS': ['in_reply_to', 'like_of']
+    }
+    init_micropub_metadata(Generator(settings), metadata)
+    assert metadata['in_reply_to'] == []
+    assert metadata['like_of'] == []
+
+
+def test_should_split_content_headers():
+    metadata = {
+        'in_reply_to': 'hello,goodbye',
+        'like_of': 'blah,stuff'
+    }
+    settings = {
+        'WEBMENTIONS_CONTENT_HEADERS': ['in_reply_to', 'like_of']
+    }
+    init_micropub_metadata(Generator(settings), metadata)
+    assert metadata['in_reply_to'] == ['hello', 'goodbye']
+    assert metadata['like_of'] == ['blah', 'stuff']

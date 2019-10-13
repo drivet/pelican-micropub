@@ -21,6 +21,22 @@ supported_post_types = ['reply', 'repost', 'like', 'photo', 'article', 'note']
 default_category = 'miscellanea'
 
 
+def init_micropub_metadata(generator, metadata):
+    # these headers normally come from micropub, and will hence be lists,
+    # but when they come from a traditional Markdown file (where they are
+    # strings). We need to turn the values into lists
+    for header in get_content_headers(generator.settings):
+        if header not in metadata:
+            metadata[header] = []
+        elif isinstance(metadata[header], str):
+            metadata[header] = metadata[header].split(',')
+
+
+def get_content_headers(settings):
+    return settings.get('WEBMENTIONS_CONTENT_HEADERS',
+                        ['like_of', 'repost_of', 'in_reply_to'])
+
+
 class MicropubReader(BaseReader):
     enabled = True
     file_extensions = ['mp']
@@ -60,10 +76,10 @@ def get_metadata(settings, entry, post, post_type):
         'modified': updated,
         'title': entry.get('name') or entry.get('content-plain'),
         'summary': entry.get('summary'),
-        'in-reply-to': get_url_prop(entry, 'in-reply-to'),
-        'like-of': get_url_prop(entry, 'like-of'),
-        'repost-of': get_url_prop(entry, 'repost-of'),
-        'bookmark-of': get_url_prop(entry, 'bookmark-of')
+        'in_reply_to': get_url_prop(entry, 'in-reply-to'),
+        'like_of': get_url_prop(entry, 'like-of'),
+        'repost_of': get_url_prop(entry, 'repost-of'),
+        'bookmark_of': get_url_prop(entry, 'bookmark-of')
     }
 
     if 'author' in entry:
@@ -161,3 +177,6 @@ def add_reader(readers):
 
 def register():
     signals.readers_init.connect(add_reader)
+    signals.article_generator_context.connect(init_micropub_metadata)
+    signals.page_generator_context.connect(init_micropub_metadata)
+    signals.static_generator_context.connect(init_micropub_metadata)
