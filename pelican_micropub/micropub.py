@@ -148,6 +148,7 @@ def get_metadata(settings, entry, post, post_type):
         'like_of': get_url_prop(entry, 'like-of'),
         'repost_of': get_url_prop(entry, 'repost-of'),
         'bookmark_of': get_url_prop(entry, 'bookmark-of'),
+        'mp_syndicate_to': post['properties'].get('mp-syndicate-to', []),
         'post_type': post_type
     }
 
