@@ -53,5 +53,5 @@ def convert2html(text, url_linking=False,
 
     # replace more than two spaces with escape codes
     text = multispace_re.sub('&nbsp;', text)
-    
+
     return text

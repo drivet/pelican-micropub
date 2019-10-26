@@ -3,9 +3,9 @@ import mf2util
 import markdown
 import datetime
 
-from pelican import signals
 from pelican.readers import BaseReader
-from pelican_micropub.notedown import convert2html
+from pelican_micropub.notedown import convert2html, extract_hashtags, \
+    extract_mentions, extract_links
 
 
 # Post type is one of:
@@ -21,6 +21,89 @@ supported_post_types = ['reply', 'repost', 'like', 'photo', 'article', 'note']
 default_category = 'miscellanea'
 
 
+class MicropubReader(BaseReader):
+    enabled = True
+    file_extensions = ['mp']
+
+    def read(self, filename):
+        post = json.loads(read_whole_file(filename))
+        html, metadata = micropub2pelican(post, self.settings)
+        parsed = {}
+        for key, value in metadata.items():
+            parsed[key] = self.process_metadata(key, value)
+        return html, adjust_metadata(parsed, text_content(post))
+
+
+class NotedownReader(BaseReader):
+    enabled = True
+    file_extensions = ['nd']
+
+    def read(self, filename):
+        contents = read_whole_file(filename)
+
+        meta_text = contents.split("\n\n", 2)
+        metadata = extract_markdown_metadata(meta_text[0] + "\n\n")
+
+        post_type = infer_post_type(metadata, meta_text[1])
+        metadata['post_type'] = post_type
+        category = get_category(self.settings, post_type)
+        if category:
+            metadata['category'] = category
+
+        parsed = {}
+        for key, value in metadata.items():
+            parsed[key] = self.process_metadata(key, value)
+
+        return notedown(meta_text[1], self.settings),\
+            adjust_metadata(parsed, meta_text[1])
+
+
+def adjust_metadata(parsed, text):
+    if text is None:
+        return parsed
+
+    if parsed.get('title') is None:
+        parsed['title'] = text
+
+    hashtags = extract_hashtags(text)
+    if hashtags:
+        parsed['hashtags'] = hashtags
+
+    mentions = extract_mentions(text)
+    if mentions:
+        parsed['mentions'] = mentions
+
+    links = extract_links(text)
+    if links:
+        parsed['links'] = links
+
+    return parsed
+
+
+def infer_post_type(metadata, content):
+    for prop, implied_type in [
+        ('in_reply_to', 'reply'),
+        ('repost_of', 'repost'),
+        ('like_of', 'like'),
+        ('photos', 'photo'),
+    ]:
+        if metadata.get(prop) is not None:
+            return implied_type
+    if content and metadata.get('title') is not None:
+        return 'article'
+    return 'note'
+
+
+def extract_markdown_metadata(metadata_text):
+    md = markdown.Markdown(extensions=['meta'])
+    md.convert(metadata_text)
+
+    metadata = {}
+    for key, value in md.Meta.items():
+        metadata[key] = "\n".join(value)
+    return metadata
+
+
 def init_micropub_metadata(generator, metadata):
     # these headers normally come from micropub, and will hence be lists,
     # but when they come from a traditional Markdown file (where they are
@@ -34,28 +117,17 @@ def init_micropub_metadata(generator, metadata):
 
 def get_content_headers(settings):
     return settings.get('WEBMENTIONS_CONTENT_HEADERS',
-                        ['like_of', 'repost_of', 'in_reply_to'])
-
-
-class MicropubReader(BaseReader):
-    enabled = True
-    file_extensions = ['mp']
-
-    def read(self, filename):
-        post = json.loads(read_whole_file(filename))
-        html, metadata = micropub2pelican(post, self.settings)
-        parsed = {}
-        for key, value in metadata.items():
-            parsed[key] = self.process_metadata(key, value)
-        return html, parsed
+                        ['like_of', 'repost_of', 'in_reply_to', 'bookmark_of'])
 
 
 def micropub2pelican(post, settings={}):
+    print(str(post))
     post_type = mf2util.post_type_discovery(post)
     if post_type not in supported_post_types:
         raise Exception(f'{post_type} not among supported post types')
 
     entry = mf2util.interpret_entry({'items': [post]}, '')
+    print(str(entry))
     if not entry:
         raise Exception('Could not interpret parsed entry')
 
@@ -64,12 +136,11 @@ def micropub2pelican(post, settings={}):
 
 
 def get_metadata(settings, entry, post, post_type):
-    category = get_category(settings, post_type)
+    print(str(entry))
     slug = get_slug(post)
     published = get_single_prop(post, 'published')
     updated = get_single_prop(post, 'updated') or published
     metadata = {
-        'category': category,
         'slug': slug,
         'tags': post['properties'].get('category', []),
         'date': published,
@@ -79,8 +150,13 @@ def get_metadata(settings, entry, post, post_type):
         'in_reply_to': get_url_prop(entry, 'in-reply-to'),
         'like_of': get_url_prop(entry, 'like-of'),
         'repost_of': get_url_prop(entry, 'repost-of'),
-        'bookmark_of': get_url_prop(entry, 'bookmark-of')
+        'bookmark_of': get_url_prop(entry, 'bookmark-of'),
+        'post_type': post_type
     }
+
+    category = get_category(settings, post_type)
+    if category:
+        metadata['category'] = category
 
     if 'author' in entry:
         metadata['author'] = entry['author']['name']
@@ -114,10 +190,9 @@ def get_default_slug(props):
 
 def get_category(settings, post_type):
     category_map = settings.get('MICROPUB_CATEGORY_MAP', {})
-    category = settings.get('MICROPUB_DEFAULT_CATEGORY', default_category)
     if post_type in category_map:
-        category = category_map[post_type]
-    return category
+        return category_map[post_type]
+    return None
 
 
 def get_html(settings, post, post_type):
@@ -174,9 +249,5 @@ def add_reader(readers):
     for ext in MicropubReader.file_extensions:
         readers.reader_classes[ext] = MicropubReader
 
-
-def register():
-    signals.readers_init.connect(add_reader)
-    signals.article_generator_context.connect(init_micropub_metadata)
-    signals.page_generator_context.connect(init_micropub_metadata)
-    signals.static_generator_context.connect(init_micropub_metadata)
+    for ext in NotedownReader.file_extensions:
+        readers.reader_classes[ext] = NotedownReader

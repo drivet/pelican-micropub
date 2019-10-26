@@ -114,7 +114,7 @@ def test_should_read_article_text():
     assert html == '<p>test <em>post</em></p>'
 
 
-def test_should_supply_default_category():
+def test_should_not_supply_default_category():
     post = {
         "type": ["h-entry"],
         "properties": {
@@ -122,23 +122,9 @@ def test_should_supply_default_category():
             "published": ["2019-08-29T02:03:05.429827"]
         }
     }
-    settings = {
-        'MICROPUB_DEFAULT_CATEGORY': 'defcat'
-    }
-    html, metadata = micropub2pelican(post, settings)
-    assert metadata['category'] == 'defcat'
 
-
-def test_should_supply_default_default_category():
-    post = {
-        "type": ["h-entry"],
-        "properties": {
-            "content": ["test\npost"],
-            "published": ["2019-08-29T02:03:05.429827"]
-        }
-    }
     html, metadata = micropub2pelican(post)
-    assert metadata['category'] == 'miscellanea'
+    assert 'category' not in metadata
 
 
 def test_should_read_slug_if_present():
@@ -215,7 +201,7 @@ def test_should_set_in_reply_to():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['in-reply-to'] == ['http://example.com']
+    assert metadata['in_reply_to'] == ['http://example.com']
 
 
 def test_should_set_like_of():
@@ -228,7 +214,7 @@ def test_should_set_like_of():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['like-of'] == ['http://example.com']
+    assert metadata['like_of'] == ['http://example.com']
 
 
 def test_should_set_repost_of():
@@ -241,7 +227,7 @@ def test_should_set_repost_of():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['repost-of'] == ['http://example.com']
+    assert metadata['repost_of'] == ['http://example.com']
 
 
 def test_should_set_bookmark_of():
@@ -254,7 +240,8 @@ def test_should_set_bookmark_of():
         }
     }
     html, metadata = micropub2pelican(post)
-    assert metadata['bookmark-of'] == ['http://example.com']
+    print(metadata['bookmark_of'])
+    assert metadata['bookmark_of'] == ['http://example.com']
 
 
 def test_should_set_summary_from_string():
