@@ -121,13 +121,11 @@ def get_content_headers(settings):
 
 
 def micropub2pelican(post, settings={}):
-    print(str(post))
     post_type = mf2util.post_type_discovery(post)
     if post_type not in supported_post_types:
         raise Exception(f'{post_type} not among supported post types')
 
     entry = mf2util.interpret_entry({'items': [post]}, '')
-    print(str(entry))
     if not entry:
         raise Exception('Could not interpret parsed entry')
 
@@ -136,7 +134,6 @@ def micropub2pelican(post, settings={}):
 
 
 def get_metadata(settings, entry, post, post_type):
-    print(str(entry))
     slug = get_slug(post)
     published = get_single_prop(post, 'published')
     updated = get_single_prop(post, 'updated') or published
