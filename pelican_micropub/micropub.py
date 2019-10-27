@@ -200,7 +200,7 @@ def get_html(settings, post, post_type):
 
     plain = text_content(post)
     if not plain:
-        return None
+        return ''
 
     if post_type == 'article':
         return markdown.markdown(plain)
@@ -214,7 +214,7 @@ def html_content(mp_entry):
        isinstance(content[0], str) or \
        not isinstance(content[0], dict) or \
        'html' not in content[0]:
-        return None
+        return ''
 
     return content[0]['html']
 
@@ -224,7 +224,7 @@ def text_content(mp_entry):
     if not content or \
        isinstance(content[0], dict) or \
        not isinstance(content[0], str):
-        return None
+        return ''
 
     return content[0]
 

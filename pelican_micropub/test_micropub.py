@@ -26,7 +26,7 @@ def test_does_not_fetch_html():
             'content': ['hello']
         }
     }
-    assert html_content(mp_entry) is None
+    assert html_content(mp_entry) is ''
 
 
 def test_does_not_fetch_text():
@@ -38,7 +38,7 @@ def test_does_not_fetch_text():
             }]
         }
     }
-    assert text_content(mp_entry) is None
+    assert text_content(mp_entry) is ''
 
 
 def test_fetch_text():
