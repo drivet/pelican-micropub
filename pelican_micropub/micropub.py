@@ -86,6 +86,7 @@ def infer_post_type(metadata, content):
         ('repost_of', 'repost'),
         ('like_of', 'like'),
         ('photos', 'photo'),
+        ('photo', 'photo'),
     ]:
         if metadata.get(prop) is not None:
             return implied_type
@@ -105,6 +106,26 @@ def extract_markdown_metadata(metadata_text):
 
 
 def init_micropub_metadata(generator, metadata):
+    # If it's from the micropub server, the key is 'photo',
+    # and there's nothing to do here (though we will process
+    # the data a bit later)
+    #
+    # For legacy reasons (raw notedown metadata) we also
+    # support 'photos' and 'photos_alt', and we convert it
+    # to a normalized form
+    if 'photos' in metadata:
+        metadata['photo'] = []
+        photos = metadata['photos'].split(',')
+        photos_alt = []
+        if 'photos_alt' in metadata:
+            photos_alt = metadata['photos_alt'].split(',')
+        for index, photo in enumerate(photos):
+            if photos_alt:
+                metadata['photo'].append({'value': photo,
+                                          'alt': photos_alt[index]})
+            else:
+                metadata['photo'].append({'value': photo})
+
     # these headers normally come from micropub, and will hence be lists,
     # but when they come from a traditional Markdown file (where they are
     # strings). We need to turn the values into lists
@@ -159,6 +180,14 @@ def get_metadata(settings, entry, post, post_type):
     if 'author' in entry:
         metadata['author'] = entry['author']['name']
         metadata['author-full'] = entry['author']
+
+    if 'photo' in post['properties']:
+        metadata['photo'] = []
+        for photo in post['properties']['photo']:
+            if isinstance(photo, dict):
+                metadata['photo'].append(photo)
+            elif isinstance(photo, str):
+                metadata['photo'].append({'value': photo})
 
     return metadata
 
